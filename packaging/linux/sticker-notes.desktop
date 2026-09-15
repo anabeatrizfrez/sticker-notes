@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Sticker Notes
+Comment=Notas adesivas para a área de trabalho
+Exec=/usr/bin/sticker-notes
+Icon=sticker-notes
+Terminal=false
+Categories=Utility;Office;
+StartupWMClass=sticker-notes

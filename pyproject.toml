@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sticker-notes"
+version = "1.0.0"
+description = "Notas adesivas para a área de trabalho."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Seu Nome" }]
+dependencies = [
+    "PyQt6>=6.6,<7",
+]
+
+[project.urls]
+Homepage = "https://github.com/anabeatrizfrez/sticker-notes"
+Issues = "https://github.com/anabeatrizfrez/sticker-notes/issues"
+
+[project.gui-scripts]
+sticker-notes = "sticker_notes.__main__:main"
+
+[tool.setuptools]
+packages = ["sticker_notes"]

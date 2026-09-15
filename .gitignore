@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+*.spec.bak
+.venv/
+venv/
+
+sticker_notes_dados.json
+*.tmp

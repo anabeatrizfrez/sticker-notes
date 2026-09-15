@@ -1,0 +1,90 @@
+name: Build e publicar release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch: {}
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+          pip install pyinstaller
+
+      - name: Gerar o .exe
+        run: pyinstaller --noconfirm --clean packaging/sticker-notes.spec
+
+      - name: Renomear artefato
+        run: Copy-Item dist/sticker-notes.exe dist/sticker-notes-windows.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sticker-notes-windows
+          path: dist/sticker-notes-windows.exe
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências do sistema (Qt/xcb)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxcb-cursor0 libxkbcommon-x11-0 libegl1 dpkg-dev
+
+      - name: Instalar dependências Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+          pip install pyinstaller
+
+      - name: Gerar o binário
+        run: pyinstaller --noconfirm --clean packaging/sticker-notes.spec
+
+      - name: Empacotar o .deb
+        run: |
+          BRUTO="${GITHUB_REF_NAME#v}"
+          if [[ "$BRUTO" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]]; then
+            export VERSAO="$BRUTO"
+          else
+            export VERSAO="0.0.0"
+          fi
+          ./packaging/build_deb.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sticker-notes-linux
+          path: |
+            dist/*.deb
+            dist/sticker-notes
+
+  publicar-release:
+    needs: [windows, linux]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artefatos
+
+      - name: Publicar na Release do GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artefatos/sticker-notes-windows/sticker-notes-windows.exe
+            artefatos/sticker-notes-linux/*.deb
