@@ -5,6 +5,7 @@ from PyQt6.QtCore import QPoint, Qt, QTimer
 from PyQt6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap, QPolygon
 from PyQt6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
+from . import autostart
 from .config import HEX_CORES, cor_valida
 from .note import NotaWindow
 from .paths import diretorio_dados, restringir_permissoes
@@ -55,6 +56,13 @@ class AppStickerNotes:
         ocultar = QAction("Ocultar todas", menu)
         ocultar.triggered.connect(lambda: self.ocultar_todas())
         menu.addAction(ocultar)
+        if autostart.suportado():
+            menu.addSeparator()
+            self.acao_iniciar_com_sistema = QAction("Iniciar com o sistema", menu)
+            self.acao_iniciar_com_sistema.setCheckable(True)
+            self.acao_iniciar_com_sistema.setChecked(autostart.esta_habilitado())
+            self.acao_iniciar_com_sistema.triggered.connect(self._alternar_autostart)
+            menu.addAction(self.acao_iniciar_com_sistema)
         menu.addSeparator()
         sair = QAction("Sair", menu)
         sair.triggered.connect(lambda: self.encerrar())
@@ -133,6 +141,19 @@ class AppStickerNotes:
         for nota in self.notas:
             nota.faixa_cores.adicionar_cor(hex_cor)
         self.agendar_salvamento()
+
+    def _alternar_autostart(self, marcado):
+        sucesso = autostart.alternar(marcado)
+        # Nunca confia no clique por si só: relê o estado real do sistema
+        # (registro/arquivo) e sincroniza a caixinha com ele, pra nunca
+        # mostrar "ativado" quando na prática não gravou nada.
+        self.acao_iniciar_com_sistema.setChecked(autostart.esta_habilitado())
+        if marcado and not sucesso:
+            self.bandeja.showMessage(
+                "Sticker Notes",
+                "Não foi possível ativar o início automático nesta instalação.",
+                QSystemTrayIcon.MessageIcon.Warning,
+            )
 
     def remover_nota(self, nota):
         if nota not in self.notas:
