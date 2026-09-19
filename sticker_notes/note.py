@@ -387,8 +387,9 @@ class NotaWindow(QMainWindow):
         self.area_texto.setTextCursor(cursor)
         self.emitir_alteracao()
 
-    def alternar_tarefa(self):
-        cursor = self.area_texto.textCursor()
+    def alternar_tarefa(self, cursor=None):
+        cursor = self.area_texto.textCursor() if cursor is None else cursor
+
         cursor.movePosition(cursor.MoveOperation.StartOfBlock)
         cursor.movePosition(cursor.MoveOperation.EndOfBlock, cursor.MoveMode.KeepAnchor)
         linha = cursor.selectedText()
