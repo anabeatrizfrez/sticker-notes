@@ -400,7 +400,7 @@ class AreaTexto(QTextEdit):
     def _clique_em_tarefa(self, pos):
         if not self._area_da_tarefa(pos):
             return False
-        self.nota.alternar_tarefa()
+        self.nota.alternar_tarefa(self.cursorForPosition(pos))
         return True
 
 
