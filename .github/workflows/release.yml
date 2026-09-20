@@ -25,13 +25,28 @@ jobs:
       - name: Gerar o .exe
         run: pyinstaller --noconfirm --clean packaging/sticker-notes.spec
 
-      - name: Renomear artefato
-        run: Copy-Item dist/sticker-notes.exe dist/sticker-notes-windows.exe
+      - name: Ajustar a versão no instalador
+        shell: pwsh
+        run: |
+          $versao = "${env:GITHUB_REF_NAME}" -replace '^v',''
+          if ($versao -eq "") { $versao = "0.0.0" }
+          (Get-Content packaging/windows/sticker-notes.iss) `
+            -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"$versao`"" |
+            Set-Content packaging/windows/sticker-notes.iss
+
+      - name: Compilar o instalador (Inno Setup)
+        shell: pwsh
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\windows\sticker-notes.iss'
+
+      - name: Renomear a versão portátil (sem instalador)
+        run: Copy-Item dist/sticker-notes.exe dist/sticker-notes-portable.exe
 
       - uses: actions/upload-artifact@v4
         with:
           name: sticker-notes-windows
-          path: dist/sticker-notes-windows.exe
+          path: |
+            dist/Sticker-Notes-Setup.exe
+            dist/sticker-notes-portable.exe
 
   linux:
     runs-on: ubuntu-latest
@@ -86,5 +101,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artefatos/sticker-notes-windows/sticker-notes-windows.exe
+            artefatos/sticker-notes-windows/Sticker-Notes-Setup.exe
+            artefatos/sticker-notes-windows/sticker-notes-portable.exe
             artefatos/sticker-notes-linux/*.deb
