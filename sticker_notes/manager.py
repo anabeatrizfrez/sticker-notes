@@ -1,11 +1,11 @@
 import json
 from pathlib import Path
 
-from PyQt6.QtCore import QPoint, Qt, QTimer
-from PyQt6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap, QPolygon
+from PyQt6.QtCore import QPoint, QUrl, Qt, QTimer
+from PyQt6.QtGui import QAction, QColor, QDesktopServices, QIcon, QPainter, QPixmap, QPolygon
 from PyQt6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
-from . import autostart
+from . import atualizacoes, autostart
 from .config import HEX_CORES, cor_valida
 from .note import NotaWindow
 from .paths import diretorio_dados, restringir_permissoes
@@ -42,6 +42,9 @@ class AppStickerNotes:
         QApplication.instance().setQuitOnLastWindowClosed(False)
         self._configurar_bandeja()
         self.carregar_dados()
+        self._url_atualizacao = None
+        self._thread_atualizacao = None
+        QTimer.singleShot(0, self._verificar_atualizacao)
 
     def _configurar_bandeja(self):
         self.bandeja = QSystemTrayIcon(_icone_bandeja())
@@ -56,6 +59,10 @@ class AppStickerNotes:
         ocultar = QAction("Ocultar todas", menu)
         ocultar.triggered.connect(lambda: self.ocultar_todas())
         menu.addAction(ocultar)
+        self.acao_atualizacao = QAction("Verificar atualizações…", menu)
+        self.acao_atualizacao.setVisible(False)
+        self.acao_atualizacao.triggered.connect(self._abrir_pagina_atualizacao)
+        menu.addAction(self.acao_atualizacao)
         if autostart.suportado():
             menu.addSeparator()
             self.acao_iniciar_com_sistema = QAction("Iniciar com o sistema", menu)
@@ -69,6 +76,7 @@ class AppStickerNotes:
         menu.addAction(sair)
         self.bandeja.setContextMenu(menu)
         self.bandeja.activated.connect(self._clique_bandeja)
+        self.bandeja.messageClicked.connect(self._abrir_pagina_atualizacao)
         self.bandeja.show()
 
     def _clique_bandeja(self, motivo):
@@ -144,9 +152,6 @@ class AppStickerNotes:
 
     def _alternar_autostart(self, marcado):
         sucesso = autostart.alternar(marcado)
-        # Nunca confia no clique por si só: relê o estado real do sistema
-        # (registro/arquivo) e sincroniza a caixinha com ele, pra nunca
-        # mostrar "ativado" quando na prática não gravou nada.
         self.acao_iniciar_com_sistema.setChecked(autostart.esta_habilitado())
         if marcado and not sucesso:
             self.bandeja.showMessage(
@@ -154,6 +159,25 @@ class AppStickerNotes:
                 "Não foi possível ativar o início automático nesta instalação.",
                 QSystemTrayIcon.MessageIcon.Warning,
             )
+
+    def _verificar_atualizacao(self):
+        self._thread_atualizacao = atualizacoes.VerificadorAtualizacao()
+        self._thread_atualizacao.encontrada.connect(self._nova_versao_disponivel)
+        self._thread_atualizacao.start()
+
+    def _nova_versao_disponivel(self, versao, url):
+        self._url_atualizacao = url
+        self.acao_atualizacao.setText(f"Nova versão {versao} disponível")
+        self.acao_atualizacao.setVisible(True)
+        self.bandeja.showMessage(
+            "Sticker Notes",
+            f"Versão {versao} disponível — clique aqui para abrir a página de download.",
+            QSystemTrayIcon.MessageIcon.Information,
+        )
+
+    def _abrir_pagina_atualizacao(self):
+        if self._url_atualizacao:
+            QDesktopServices.openUrl(QUrl(self._url_atualizacao))
 
     def remover_nota(self, nota):
         if nota not in self.notas:
