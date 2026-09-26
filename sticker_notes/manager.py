@@ -5,7 +5,7 @@ from PyQt6.QtCore import QPoint, QUrl, Qt, QTimer
 from PyQt6.QtGui import QAction, QColor, QDesktopServices, QIcon, QPainter, QPixmap, QPolygon
 from PyQt6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
-from . import atualizacoes, autostart
+from . import updates, autostart
 from .config import HEX_CORES, cor_valida
 from .note import NotaWindow
 from .paths import diretorio_dados, restringir_permissoes
@@ -161,7 +161,7 @@ class AppStickerNotes:
             )
 
     def _verificar_atualizacao(self):
-        self._thread_atualizacao = atualizacoes.VerificadorAtualizacao()
+        self._thread_atualizacao = updates.VerificadorAtualizacao()
         self._thread_atualizacao.encontrada.connect(self._nova_versao_disponivel)
         self._thread_atualizacao.start()
 
