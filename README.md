@@ -22,9 +22,6 @@
 
 - Se preferir não instalar nada, o `sticker-notes-portable.exe` também está disponível na mesma página: só baixar e rodar.
 
-<br>
-
----
 
 ### 🐧 Linux:
 
@@ -103,11 +100,13 @@ Quando o app estiver aberto, o ícone fica na bandeja do sistema (perto do reló
    </summary>
    <br>
 
+   ### Linux (.deb):
+
    ```bash
       $ sudo apt install ./sticker-notes_<nova versão>_amd64.deb
    ```
 
-   ### Terminal (pipx)
+   ### Terminal (pipx):
 
    ```bash
       $ pipx upgrade sticker-notes
