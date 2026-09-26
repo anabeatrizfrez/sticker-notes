@@ -38,8 +38,19 @@ Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: startupicon
 
+[Registry]
+; Remove a chave de registro Run legada (criada por versões antigas do app)
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
+  ValueType: none; ValueName: "StickerNotes"; Flags: deletevalue uninsdeletevalue
+
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Abrir o {#MyAppName} agora"; Flags: nowait postinstall skipifsilent
+; Se o usuário marcou a opção de startup, remove a Tarefa Agendada antes de criar o atalho
+Filename: "{cmd}"; Parameters: "/C schtasks /Delete /TN StickerNotes /F"; \
+  Flags: runhidden nowait; Tasks: startupicon; RunOnceId: "RemoverTarefaAoInstalar"
+Filename: "{app}\{#MyAppExeName}"; Description: "Abrir o {#MyAppName} agora"; \
+  Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
-Filename: "{cmd}"; Parameters: "/C schtasks /Delete /TN StickerNotes /F"; Flags: runhidden; RunOnceId: "RemoverTarefaAgendada"
+; Ao desinstalar: remove Tarefa Agendada e chave de registro (se existirem)
+Filename: "{cmd}"; Parameters: "/C schtasks /Delete /TN StickerNotes /F"; \
+  Flags: runhidden; RunOnceId: "RemoverTarefaAgendada"
