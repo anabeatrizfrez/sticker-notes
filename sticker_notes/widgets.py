@@ -298,85 +298,77 @@ class AreaTexto(QTextEdit):
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setMouseTracking(True)
         self.viewport().setMouseTracking(True)
+        self.viewport().setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.viewport().setCursor(Qt.CursorShape.SizeAllCursor)
+        self.viewport().installEventFilter(self)
         self._ponto_pressionado = None
         self._pos_local_pressionada = None
         self._arrastando_nota = False
         self._clique_pendente = False
+        self._estava_focada = False
 
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton and self._clique_em_tarefa(event.pos()):
-            event.accept()
-            return
-        if event.button() == Qt.MouseButton.LeftButton:
-            pos_local = event.position().toPoint()
-            # Desfocada: a nota inteira é uma alça de arraste (um clique sem
-            # mover ainda foca normalmente). Focada: só vira arraste se o
-            # clique começar numa área sem nenhum caractere de verdade.
-            permite_arraste = not self.hasFocus() or self._ponto_em_area_vazia(pos_local)
-            if permite_arraste:
-                self._ponto_pressionado = event.globalPosition().toPoint()
-                self._pos_local_pressionada = pos_local
-                self._arrastando_nota = False
-                self._clique_pendente = True
-                event.accept()
-                return
-        self._ponto_pressionado = None
-        self._clique_pendente = False
-        super().mousePressEvent(event)
+    def eventFilter(self, obj, event):
+        if obj is not self.viewport():
+            return False
 
-    def _ponto_em_area_vazia(self, pos_local):
-        ponto_doc = QPointF(
-            pos_local.x() + self.horizontalScrollBar().value(),
-            pos_local.y() + self.verticalScrollBar().value(),
-        )
-        posicao = self.document().documentLayout().hitTest(ponto_doc, Qt.HitTestAccuracy.ExactHit)
-        return posicao == -1
+        t = event.type()
 
-    def mouseMoveEvent(self, event):
-        if self._ponto_pressionado is not None and event.buttons() & Qt.MouseButton.LeftButton:
-            ponto_atual = event.globalPosition().toPoint()
-            if not self._arrastando_nota:
-                distancia = (ponto_atual - self._ponto_pressionado).manhattanLength()
-                if distancia < QApplication.startDragDistance():
-                    event.accept()
-                    return
-                self._arrastando_nota = True
+        if t == event.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
+            if self._clique_em_tarefa(event.pos()):
+                return True
+            if self._estava_focada:
+                self._ponto_pressionado = None
                 self._clique_pendente = False
+                return False
+            self._ponto_pressionado = event.globalPosition().toPoint()
+            self._pos_local_pressionada = event.position().toPoint()
+            self._arrastando_nota = False
+            self._clique_pendente = True
+            return True
+
+        if t == event.Type.MouseMove:
+            if self._ponto_pressionado is not None and event.buttons() & Qt.MouseButton.LeftButton:
+                ponto_atual = event.globalPosition().toPoint()
+                if not self._arrastando_nota:
+                    if (ponto_atual - self._ponto_pressionado).manhattanLength() < QApplication.startDragDistance():
+                        return True
+                    self._arrastando_nota = True
+                    self._clique_pendente = False
+                    self.viewport().setCursor(Qt.CursorShape.SizeAllCursor)
+                    self.nota.iniciar_feedback_arraste()
+                    self.clearFocus()
+                self.nota.mover_por_arraste(ponto_atual - self._ponto_pressionado)
+                self._ponto_pressionado = ponto_atual
+                return True
+            self._atualizar_cursor_hover(event.position().toPoint())
+            return False
+
+        if t == event.Type.MouseButtonRelease and event.button() == Qt.MouseButton.LeftButton:
+            if self._arrastando_nota:
+                self._arrastando_nota = False
+                self._ponto_pressionado = None
                 self.viewport().setCursor(Qt.CursorShape.SizeAllCursor)
-                self.nota.iniciar_feedback_arraste()
-            self.nota.mover_por_arraste(ponto_atual - self._ponto_pressionado)
-            self._ponto_pressionado = ponto_atual
-            event.accept()
-            return
-        self._atualizar_cursor_hover(event.position().toPoint())
-        super().mouseMoveEvent(event)
+                self.nota.finalizar_feedback_arraste()
+                self.nota.emitir_alteracao()
+                return True
+            if self._clique_pendente:
+                self._clique_pendente = False
+                self._ponto_pressionado = None
+                self._estava_focada = True
+                self.setFocus(Qt.FocusReason.MouseFocusReason)
+                self.setTextCursor(self.cursorForPosition(self._pos_local_pressionada))
+                return True
+            return False
+
+        return False
 
     def _atualizar_cursor_hover(self, pos_local):
         if self._area_da_tarefa(pos_local):
             self.viewport().setCursor(Qt.CursorShape.PointingHandCursor)
-        elif not self.hasFocus():
+        elif not self._estava_focada:
             self.viewport().setCursor(Qt.CursorShape.SizeAllCursor)
         else:
             self.viewport().setCursor(Qt.CursorShape.IBeamCursor)
-
-    def mouseReleaseEvent(self, event):
-        if self._arrastando_nota:
-            self._arrastando_nota = False
-            self._ponto_pressionado = None
-            self.viewport().setCursor(Qt.CursorShape.IBeamCursor)
-            self.nota.finalizar_feedback_arraste()
-            self.nota.emitir_alteracao()
-            event.accept()
-            return
-        if self._clique_pendente:
-            self._clique_pendente = False
-            self._ponto_pressionado = None
-            self.setFocus(Qt.FocusReason.MouseFocusReason)
-            self.setTextCursor(self.cursorForPosition(self._pos_local_pressionada))
-            event.accept()
-            return
-        super().mouseReleaseEvent(event)
 
     def focusInEvent(self, event):
         super().focusInEvent(event)
@@ -384,6 +376,7 @@ class AreaTexto(QTextEdit):
         self.nota.atualizar_cromo()
 
     def focusOutEvent(self, event):
+        self._estava_focada = False 
         super().focusOutEvent(event)
         self.viewport().setCursor(Qt.CursorShape.SizeAllCursor)
         QTimer.singleShot(0, self.nota.atualizar_cromo)
@@ -400,7 +393,7 @@ class AreaTexto(QTextEdit):
     def _clique_em_tarefa(self, pos):
         if not self._area_da_tarefa(pos):
             return False
-        self.nota.alternar_tarefa(self.cursorForPosition(pos))
+        self.nota.alternar_tarefa()
         return True
 
 
