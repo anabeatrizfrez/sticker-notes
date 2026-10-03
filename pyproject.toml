@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sticker-notes"
-version = "1.0.0"
+version = "1.0.1"
 description = "Notas adesivas para a área de trabalho."
 readme = "README.md"
 requires-python = ">=3.9"

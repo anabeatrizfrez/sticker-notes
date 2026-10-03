@@ -1,3 +1,5 @@
+import sys
+
 from PyQt6.QtCore import QPoint, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QAction, QColor, QFont, QKeySequence, QTextCharFormat
 from PyQt6.QtWidgets import (
@@ -47,6 +49,35 @@ def _cor_suave(hex_cor, fator=112):
     return QColor(hex_cor).darker(fator).name()
 
 
+def _definir_opacidade_janela(janela, valor):
+    if sys.platform.startswith("linux"):
+        import os
+        devnull = open(os.devnull, "w")
+        fd_stderr = sys.stderr.fileno() if hasattr(sys.stderr, "fileno") else -1
+        try:
+            if fd_stderr >= 0:
+                import ctypes
+                libc = ctypes.CDLL(None)
+                old_stderr = os.dup(fd_stderr)
+                os.dup2(devnull.fileno(), fd_stderr)
+            janela.setWindowOpacity(valor)
+        except Exception:
+            pass
+        finally:
+            try:
+                if fd_stderr >= 0:
+                    os.dup2(old_stderr, fd_stderr)
+                    os.close(old_stderr)
+            except Exception:
+                pass
+            devnull.close()
+    else:
+        try:
+            janela.setWindowOpacity(valor)
+        except Exception:
+            pass
+
+
 class NotaWindow(QMainWindow):
     alterada = pyqtSignal()
 
@@ -54,7 +85,6 @@ class NotaWindow(QMainWindow):
         super().__init__()
         self.gerenciador = gerenciador
         self.dados = dados if isinstance(dados, dict) else {}
-        # Checa tipos de dados
         opacidade_lida = numero_seguro(self.dados.get("opacidade"), OPACIDADE_PADRAO)
         self.opacidade = max(OPACIDADE_MINIMA, min(1.0, opacidade_lida))
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool)
@@ -76,7 +106,7 @@ class NotaWindow(QMainWindow):
             self.area_texto.setHtml(self.dados["html"])
         else:
             self.area_texto.setPlainText(self.dados.get("texto", ""))
-        self.setWindowOpacity(self.opacidade)
+        _definir_opacidade_janela(self, self.opacidade)
         if self.dados.get("sempre_visivel", False):
             self.alternar_sempre_visivel(True)
 
@@ -260,13 +290,13 @@ class NotaWindow(QMainWindow):
         self.sombra.setBlurRadius(38)
         self.sombra.setOffset(0, 10)
         self.sombra.setColor(QColor(0, 0, 0, 70))
-        self.setWindowOpacity(min(self.opacidade, 0.94))
+        _definir_opacidade_janela(self, min(self.opacidade, 0.94))
 
     def finalizar_feedback_arraste(self):
         self.sombra.setBlurRadius(26)
         self.sombra.setOffset(0, 3)
         self.sombra.setColor(QColor(0, 0, 0, 38))
-        self.setWindowOpacity(self.opacidade)
+        _definir_opacidade_janela(self, self.opacidade)
 
     def emitir_alteracao(self):
         self.alterada.emit()
@@ -389,7 +419,6 @@ class NotaWindow(QMainWindow):
 
     def alternar_tarefa(self, cursor=None):
         cursor = self.area_texto.textCursor() if cursor is None else cursor
-
         cursor.movePosition(cursor.MoveOperation.StartOfBlock)
         cursor.movePosition(cursor.MoveOperation.EndOfBlock, cursor.MoveMode.KeepAnchor)
         linha = cursor.selectedText()
@@ -484,7 +513,7 @@ class NotaWindow(QMainWindow):
 
     def definir_opacidade(self, valor):
         self.opacidade = max(OPACIDADE_MINIMA, min(1.0, float(valor)))
-        self.setWindowOpacity(self.opacidade)
+        _definir_opacidade_janela(self, self.opacidade)
         self.emitir_alteracao()
 
     def alternar_sempre_visivel(self, ativado=None):

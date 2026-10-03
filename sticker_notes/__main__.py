@@ -1,4 +1,5 @@
 import atexit
+import os
 import sys
 
 from PyQt6.QtGui import QFont
@@ -10,6 +11,12 @@ from . import single_instance
 
 
 def main():
+    if sys.platform.startswith("linux"):
+        os.environ.setdefault(
+            "QT_LOGGING_RULES",
+            "qt.qpa.xcb.warning=false;qt.qpa.wayland.warning=false",
+        )
+
     app = QApplication(sys.argv)
     app.setApplicationName("Sticker Notes")
     app.setOrganizationName("Sticker Notes")
@@ -28,7 +35,7 @@ def main():
 
     atexit.register(single_instance.liberar)
 
-    gerenciador = AppStickerNotes()
+    gerenciador = AppStickerNotes()  # noqa: F841
     sys.exit(app.exec())
 
 
