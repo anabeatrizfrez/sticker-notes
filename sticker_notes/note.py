@@ -81,8 +81,8 @@ def _definir_opacidade_janela(janela, valor):
 class NotaWindow(QMainWindow):
     alterada = pyqtSignal()
 
-    def __init__(self, gerenciador, dados):
-        super().__init__()
+    def __init__(self, gerenciador, dados, pai=None):
+        super().__init__(pai)
         self.gerenciador = gerenciador
         self.dados = dados if isinstance(dados, dict) else {}
         opacidade_lida = numero_seguro(self.dados.get("opacidade"), OPACIDADE_PADRAO)

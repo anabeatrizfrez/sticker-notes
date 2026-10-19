@@ -10,7 +10,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 REPOSITORIO = "anabeatrizfrez/sticker-notes"
 
 # "version" - pyproject.toml
-VERSAO_ATUAL = "1.0.1"
+VERSAO_ATUAL = "1.0.2"
 
 _URL_API = f"https://api.github.com/repos/{REPOSITORIO}/releases/latest"
 
