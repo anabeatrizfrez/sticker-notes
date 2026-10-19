@@ -1,5 +1,4 @@
 import atexit
-import os
 import sys
 
 from PyQt6.QtGui import QFont
@@ -10,12 +9,21 @@ from .manager import AppStickerNotes
 from . import single_instance
 
 
+_AVISOS_IGNORADOS = {
+    "does not support setting window opacity",
+    "does not support raise",
+}
+
+
+def _filtro_mensagens_qt(tipo, contexto, mensagem):
+    if any(trecho in mensagem for trecho in _AVISOS_IGNORADOS):
+        return
+    print(f"[Qt] {mensagem}", file=sys.stderr)
+
+
 def main():
-    if sys.platform.startswith("linux"):
-        os.environ.setdefault(
-            "QT_LOGGING_RULES",
-            "qt.qpa.xcb.warning=false;qt.qpa.wayland.warning=false",
-        )
+    from PyQt6.QtCore import qInstallMessageHandler
+    qInstallMessageHandler(_filtro_mensagens_qt)
 
     app = QApplication(sys.argv)
     app.setApplicationName("Sticker Notes")

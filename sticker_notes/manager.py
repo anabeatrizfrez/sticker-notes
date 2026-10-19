@@ -3,7 +3,7 @@ from pathlib import Path
 
 from PyQt6.QtCore import QPoint, QUrl, Qt, QTimer
 from PyQt6.QtGui import QAction, QColor, QDesktopServices, QIcon, QPainter, QPixmap, QPolygon
-from PyQt6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
+from PyQt6.QtWidgets import QApplication, QMenu, QSystemTrayIcon, QWidget
 
 from . import updates, autostart
 from .config import HEX_CORES, cor_valida
@@ -40,6 +40,10 @@ class AppStickerNotes:
         self.timer_salvamento.setInterval(400)
         self.timer_salvamento.timeout.connect(self.salvar_dados)
         QApplication.instance().setQuitOnLastWindowClosed(False)
+
+        self._pai_notas = QWidget()
+        self._pai_notas.setWindowFlags(Qt.WindowType.Tool)
+
         self._configurar_bandeja()
         self.carregar_dados()
         self._url_atualizacao = None
@@ -128,7 +132,7 @@ class AppStickerNotes:
             "y": 120 + len(self.notas) * 28,
             "cor": HEX_CORES[len(self.notas) % len(HEX_CORES)],
         }
-        nota = NotaWindow(self, dados)
+        nota = NotaWindow(self, dados, self._pai_notas)
         nota.alterada.connect(self.agendar_salvamento)
         self.notas.append(nota)
         nota.show()
